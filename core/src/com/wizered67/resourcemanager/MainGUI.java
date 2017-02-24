@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -19,8 +20,15 @@ import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
+import com.kotcrab.vis.ui.widget.spinner.FloatSpinnerModel;
+import com.kotcrab.vis.ui.widget.spinner.Spinner;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
 
 import static com.wizered67.resourcemanager.Resources.*;
 
@@ -177,7 +185,7 @@ public class MainGUI extends ApplicationAdapter {
             table.add(horizontalGroup).expandX().fillX().padLeft(10).padBottom(10).padRight(100).left().row();
             textField.setFillParent(true);
             if (isAnimations && animationTable != null) {
-                table.add(animationTable);
+                table.add(animationTable).padLeft(10).left();
             }
             /*
             table.left().add(included);
@@ -191,8 +199,38 @@ public class MainGUI extends ApplicationAdapter {
 
     private CollapsibleWidget addAnimations(String filename) {
         Table animTable = new Table();
-        animTable.add(new TextButton("Hello world!", VisUI.getSkin()));
+        animTable.setDebug(DEBUG);
+        Set<String> animationNames = getAnimationNames(filename);
+        for (String name : animationNames) {
+            animTable.add(new Label(name, VisUI.getSkin()));
+            Spinner spinner = new Spinner("Frame Duration", new FloatSpinnerModel("1", "0", "100", "0.1"));
+            animTable.add(spinner).padLeft(30);
+            SelectBox<Animation.PlayMode> playModeSelectBox = new SelectBox<Animation.PlayMode>(VisUI.getSkin());
+            playModeSelectBox.setItems(Animation.PlayMode.values());
+            animTable.add(playModeSelectBox);
+            animTable.row();
+        }
+        //animTable.add(new TextButton("Hello world!", VisUI.getSkin()));
         return new CollapsibleWidget(animTable);
+    }
+
+    private Set<String> getAnimationNames(String atlasFilename) {
+        Set<String> animationNames = new HashSet<String>();
+        FileHandle atlasFile = Gdx.files.internal(ANIMATIONS_DIRECTORY + "/" + atlasFilename);
+        try {
+            Scanner scanner = new Scanner(atlasFile.file());
+            //skip over file name
+            scanner.next();
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine().trim();
+                if (line.indexOf(':') < 0 && !line.isEmpty()) { //no colon so it should be the name of an animation
+                    animationNames.add(line);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return animationNames;
     }
 
     private void createFileChooser() {
